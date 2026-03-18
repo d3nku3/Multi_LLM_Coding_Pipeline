@@ -1,0 +1,691 @@
+OPERATOR RUN LAYER v5
+Decision Companion for Console-Assisted Execution
+Language: English
+Status: Decision companion layer only — authoritative operational state is managed by the Console bundle (09_Operator_Console_v5.html plus required js/ module files)
+
+==============================================================================
+0. WHAT THIS FILE IS
+==============================================================================
+
+This file is the decision companion for the six-stage pipeline.
+
+It exists to answer one operator question fast:
+"What judgment call do I need to make right now?"
+
+This file is:
+- a decision guide for ambiguous situations
+- a routing guide when something fails
+- a stop/go guide for gate decisions
+- a quality judgment aid
+
+This file is not:
+- a file management guide (the Console handles that)
+- a save/naming guide (the Console handles that)
+- a ledger/tracking guide (the Console handles that)
+- a new stage
+- a new role
+- a replacement for 01, 02, 03, 04, 05, 06, or 07
+- a place to make new technical decisions
+- a place to reinterpret contracts
+
+AUTHORITY RULE
+The Console (09: 09_Operator_Console_v5.html plus required js/ module files) is the authoritative operational state manager. It enforces stage progression and artifact tracking based on the rules defined in 07.
+This file (08) helps the operator make judgment decisions the Console cannot automate.
+If the Console blocks a transition, check 07 for the rule and this file for guidance on resolving the situation.
+
+==============================================================================
+1. FATIGUE-RESISTANT OPERATING RULES
+==============================================================================
+
+When tired, do not improvise.
+Run every step through the same short loop:
+
+1. NOW      -> the Console shows the current stage and action
+2. DECIDE   -> evaluate whether the input quality is good enough to proceed
+3. ACT      -> paste into the LLM, or click the Console action button
+4. EVALUATE -> when the result comes back, judge its quality before saving
+5. SAVE     -> Click Save in the Console (it handles disk write, manifest, audit)
+6. STOP     -> if any stop condition is true, do not push forward
+
+ONE-ACTIVE-CARD RULE
+Only work from one stage card at a time.
+Do not keep multiple future steps mentally active unless the current step is already complete.
+
+NO-GUESS RULE
+If you are unsure whether the LLM output is correct, complete, or contract-aligned:
+- stop
+- go back to the input
+- re-read the contract and required artifacts
+- verify before accepting
+- do not turn uncertainty into assumed correctness
+
+VERSION RULE
+If the Console shows a conflict or warning about artifact freshness, stop and investigate before proceeding.
+The Console tracks versions automatically, but you must still judge whether a revision invalidates downstream work that the Console cannot assess for content quality.
+
+==============================================================================
+2. GLOBAL DEFAULTS
+==============================================================================
+
+DEFAULT PASTE ORDER
+1. authoritative stage prompt
+2. full Work Package File, if applicable
+3. required authoritative artifacts
+4. optional references only after that
+
+DEFAULT DOWNSTREAM RULE
+Use full authoritative artifacts, not extracted inner snippets, unless the authoritative artifact explicitly instructs otherwise.
+
+DEFAULT ROUTING RULE
+- implementation problem -> Stage 04 rework
+- unclear reviewability or contract clarity -> route upstream
+- package-boundary conflict at merge -> Stage 05 / 06 evidence first, then upstream if contract-level
+- unresolved contract-critical decisions -> pause and route per resume instruction
+
+LLM AVAILABILITY NOTE
+The Console requires workspace and prompt folder selection before Stage 01.
+It also requires at least one Tier 1 and one Tier 2 LLM slot before proceeding.
+
+==============================================================================
+3. 10-SECOND PRE-FLIGHT
+==============================================================================
+
+If any answer is NO, stop first.
+
+[ ] Do I know exactly which stage or package I am running?
+[ ] Do I know exactly what output should come back?
+[ ] Do I know the next step if this succeeds?
+[ ] Do I know the stop condition if this fails?
+[ ] Have I read the output carefully enough to judge its quality?
+[ ] If this is a review result, does the disposition match my own assessment of the implementation?
+
+==============================================================================
+4. STAGE NAVIGATION AT A GLANCE
+==============================================================================
+
+0.5 LLM Availability -> confirm operator-available models before Stage 01 if using the Console
+Stage 01 -> produce Master Briefing
+Stage 02 -> produce Architecture Spec
+Stage 03 -> produce Stage-03 execution artifacts or single PAUSE artifact
+Stage 04 -> produce package implementation + Delivery Report
+Stage 05 -> produce review result for one exact package version
+Stage 06 -> produce full merge artifact set or blocked-state report
+
+MOST IMPORTANT TRANSITIONS
+- 0.5 -> 01 only after the minimum routing baseline is present if you are using the Console
+- 02 -> 03 only after closure / readiness status is checked
+- 03 -> 04 only with current Work Package File(s) for allowed areas
+- 04 -> 05 only with current implementation output including Delivery Report
+- 05 -> 06 only with accepted package outputs and matching pass reviews
+- any PAUSE / FAIL / BLOCKED -> stop normal downstream progression
+
+==============================================================================
+5. QUICK DECISION STRIP
+==============================================================================
+
+If you see this...                          Do this...
+---------------------------------------------------------------------------
+PAUSE_FOR_DECISIONS                         Save the full pause artifact in the Console and stop
+FAIL — REVISION REQUIRED                    Save the fail review in the Console and route to Stage 04 rework
+BLOCKED — REQUIRES REWORK                   Save the blocked result in the Console and route by blocker type
+PASS WITH NOTES                             Hold package for merge only if no merge-blocking issue remains
+missing Delivery Report                     Stop; do not send downstream as complete
+missing pass review for merged package      Stop merge immediately
+Architecture Spec CLOSED but restricted     Run only allowed areas / packages
+missing FINAL_DISPOSITION block            Stop Stage 05 routing; review is not operationally complete
+output/review revision mismatch            Stop merge; exact output/review pair is required
+missing T1/T2 LLM baseline in 09           Stop Stage 01 prep in the console until LLM Availability is set
+
+==============================================================================
+6. STAGE CARDS
+==============================================================================
+
+--------------------------------------------------------------------------
+STAGE 01 — REQUIREMENTS ENGINEER
+--------------------------------------------------------------------------
+
+STATUS
+GO when the user source material is present.
+
+NOW
+Turn raw idea / notes / Q&A into the authoritative Master Briefing.
+
+NEEDS
+The Console provides the required artifacts. Verify the input looks correct before pasting into the LLM.
+
+Required:
+- current Stage 01 prompt
+- user idea, notes, or Q&A log
+
+Optional:
+- 07_End_User_Operating_Guide_v5
+- this file
+
+PASTE
+Paste the full current Stage 01 prompt plus the required user source material.
+
+EXPECT
+Master Briefing with confirmed requirements, assumptions, open questions, risks, and blockers if applicable.
+
+SAVE
+Click Save in the Console. The artifact is written to the workspace automatically.
+
+NEXT
+Run Stage 02 using the saved Master Briefing.
+
+STOP IF
+- required information is missing
+- output is incomplete
+- output was not saved
+
+NEVER DO
+- do not proceed to Stage 02 using chat history only
+- do not treat a draft you have not checked carefully as the Master Briefing
+
+--------------------------------------------------------------------------
+STAGE 02 — TECHNICAL ARCHITECT
+--------------------------------------------------------------------------
+
+STATUS
+GO only after the Master Briefing is saved.
+
+NOW
+Turn the Master Briefing into the authoritative Architecture Spec.
+
+NEEDS
+The Console provides the required artifacts. Verify the input looks correct before pasting into the LLM.
+
+Required:
+- current Stage 02 prompt
+- current Master Briefing
+
+Optional:
+- 07_End_User_Operating_Guide_v5
+- this file
+
+PASTE
+Paste the full current Stage 02 prompt and the current Master Briefing.
+
+EXPECT
+Architecture Spec that freezes the externally visible technical contracts needed downstream.
+
+SAVE
+Click Save in the Console. The artifact is written to the workspace automatically.
+
+NEXT
+Check closure and readiness before doing anything else.
+
+STOP IF
+- contract-critical decisions remain open
+- closure gate says PAUSE_FOR_DECISIONS
+- output is incomplete
+- spec was not saved
+
+HARD STOP
+PAUSE_FOR_DECISIONS pauses normal downstream progression.
+Do not proceed into package generation or Stage 04 implementation.
+
+If the pipeline requires a Stage-03 PAUSE artifact:
+- run Stage 03 only to obtain that artifact
+- Click Save in the Console. The artifact is written to the workspace automatically.
+- resolve the open decision explicitly
+- regenerate or resume the affected authoritative artifact exactly as instructed
+- continue only after the gate is cleared
+
+NEVER DO
+- do not treat “almost closed” as closed
+- do not ignore restricted-area notes
+
+--------------------------------------------------------------------------
+STAGE 03 — PROJECT ORCHESTRATOR
+--------------------------------------------------------------------------
+
+STATUS
+GO only after Stage 02 closure / readiness has been checked.
+
+NOW
+Turn the Master Briefing and Architecture Spec into operator-usable Stage-03 execution artifacts.
+
+NEEDS
+The Console provides the required artifacts. Verify the input looks correct before pasting into the LLM.
+
+Required:
+- current Stage 03 prompt
+- current Master Briefing
+- current Architecture Spec
+- Available LLMs for this project, if you are using the operator LLM-availability step or the Console
+
+Optional:
+- 07_End_User_Operating_Guide_v5
+- this file
+
+PASTE
+Paste the full current Stage 03 prompt and include the current Master Briefing, the current Architecture Spec, and the current Available LLMs input when operator-side model selection is in use.
+
+EXPECT
+Under CLOSED status:
+- Master Orchestration File
+- one separate Work Package File per implementation work package
+- optional Execution Checklist
+
+Under PAUSE_FOR_DECISIONS:
+- only one PAUSE artifact containing:
+  - Gate Result
+  - Blocking Contract-Critical Decisions
+  - Minimal Decision Questionnaire
+  - Resume Instruction
+
+SAVE
+If CLOSED:
+- Click Save in the Console. Each artifact is written to the workspace automatically.
+
+If PAUSE_FOR_DECISIONS:
+- Click Save in the Console. The full PAUSE artifact is written to the workspace automatically.
+- do not accept only the questionnaire portion
+- keep the full PAUSE artifact visible for resume
+
+NEXT
+If CLOSED:
+- run Stage 04 one package at a time in dependency order
+- use the full Work Package File for each package
+- run only allowed packages
+
+If PAUSE_FOR_DECISIONS:
+- resolve the blocking decisions
+- resume exactly as instructed
+- do not attempt downstream progression first
+
+STOP IF
+- expected Stage-03 artifacts are missing
+- dependencies are unclear
+- output conflicts with the Architecture Spec
+- result was not saved
+- PAUSE_FOR_DECISIONS artifact is returned
+
+OPERATOR NOTE
+Under CLOSED status, Stage 03 already emits separate authoritative artifacts.
+Use those artifacts directly.
+Available LLMs is a Stage-03 input helper, not a Stage-03 output artifact.
+
+A Work Package File is the authoritative per-package downstream artifact.
+The implementer prompt is only one component inside that file.
+For downstream execution, use the full Work Package File, not just an inner prompt block.
+
+If the Architecture Spec is CLOSED but marked Partially Ready - Restricted Areas:
+- Stage 03 should emit Work Package Files only for allowed / unaffected areas
+- blocked areas should be marked explicitly in the Master Orchestration File
+- do not run blocked packages just because closure was CLOSED
+
+NEVER DO
+- do not treat manual extraction from one large orchestration blob as the normal workflow
+- do not run blocked packages
+
+--------------------------------------------------------------------------
+STAGE 04 — MODULE IMPLEMENTER
+--------------------------------------------------------------------------
+
+STATUS
+GO only when the specific Work Package File and required supporting artifacts exist.
+
+NOW
+Implement one package.
+
+NEEDS
+The Console provides the required artifacts. Verify the input looks correct before pasting into the LLM.
+
+Required:
+- current Stage 04 prompt
+- the specific Work Package File
+- current Architecture Spec
+- any additional files explicitly required by that Work Package File
+
+Optional:
+- current Master Briefing
+- Master Orchestration File
+- Execution Checklist if present
+- this file
+
+PASTE
+Paste the full current Stage 04 prompt, then the full relevant Work Package File, then every required supporting artifact named by that Work Package File.
+
+EXPECT
+- package implementation artifacts defined by the work package contract
+- structured Delivery Report required by Stage 04
+
+SAVE
+Click Save in the Console. The artifact is written to the workspace automatically.
+
+NEXT
+Run Stage 05 review for that exact saved package output, including the Delivery Report.
+
+STOP IF
+- implementation is incomplete
+- required input file was missing
+- output clearly ignored the work package contract
+- Delivery Report is missing
+- result was not saved
+
+NEVER DO
+- do not send code alone if the Delivery Report is required
+
+--------------------------------------------------------------------------
+STAGE 05 — CODE REVIEWER
+--------------------------------------------------------------------------
+
+STATUS
+GO only when one exact package version is ready for review.
+
+NOW
+Review one package output against its contract.
+
+NEEDS
+The Console provides the required artifacts. Verify the input looks correct before pasting into the LLM.
+
+Required:
+- current Stage 05 prompt
+- current Master Briefing
+- current Architecture Spec
+- the specific Work Package File
+- the specific package implementation output, including the Delivery Report
+
+Optional:
+- validator or test output if available
+- Master Orchestration File
+- Execution Checklist if present
+- this file
+
+PASTE
+Paste the full current Stage 05 prompt plus the current Master Briefing, current Architecture Spec, the full relevant Work Package File, the full implementation output, and any validator or test evidence you have.
+
+EXPECT
+Review result with a clear pass/fail outcome, reasons, and exactly one final routing block as the last section:
+- FINAL_DISPOSITION: ACCEPT
+- or FINAL_DISPOSITION: REWORK
+
+SAVE
+Click Save in the Console. The artifact is written to the workspace automatically.
+
+NEXT
+- FINAL_DISPOSITION: ACCEPT -> hold package for merge
+- FINAL_DISPOSITION: REWORK -> route back to Stage 04 rework for that package only unless the failure reveals an upstream contract problem
+- if verdict text and FINAL_DISPOSITION disagree -> stop and resolve the review artifact first
+
+STOP IF
+- review result is unclear
+- FINAL_DISPOSITION block is missing, duplicated, or invalid
+- package failed review
+- any normal Stage-05 required input is missing or contradictory
+- you only have validator output / test output / screenshots without the normal required artifacts
+
+NEVER DO
+- do not review from validator output alone
+- do not treat PASS WITH NOTES as safe if merge-blocking issues remain
+
+--------------------------------------------------------------------------
+STAGE 06 — MERGE COORDINATOR
+--------------------------------------------------------------------------
+
+STATUS
+GO only for exact output/review pairs whose review ends with FINAL_DISPOSITION: ACCEPT.
+
+NOW
+Merge only accepted package outputs.
+
+NEEDS
+The Console provides the required artifacts. Verify the input looks correct before pasting into the LLM.
+
+Required:
+- current Stage 06 prompt
+- current Architecture Spec
+- every accepted package output being merged
+- the matching review for each exact package version being merged, ending with FINAL_DISPOSITION: ACCEPT
+- the relevant contract files for the merge set, if available
+
+Optional:
+- Delivery Reports for the integrated packages
+- optional validation outputs
+- current Master Briefing
+- Master Orchestration File
+- Execution Checklist if present
+- this file
+
+PASTE
+Paste the full current Stage 06 prompt and include the current Architecture Spec, every accepted package output, the matching accepted review for each exact package version, and the relevant contract files.
+Include Delivery Reports and validation evidence too when you have them.
+
+EXPECT
+Full merge output set containing:
+- Integration Report
+- Integration Manifest
+- Conflict Report
+- Compatibility Scan Summary
+- Boundary Validation Performed
+- Remaining Boundary Checks
+- changed files in full
+- explicit unchanged-file list
+- or a blocked-state report if safe integration is not possible
+
+SAVE
+Click Save in the Console. The artifact is written to the workspace automatically.
+
+NEXT
+Continue with normal post-merge handling only after the full merge artifact set is saved.
+
+STOP IF
+- any merged package lacks an accepted review
+- an accepted review does not match the exact package version being merged
+- required contract file for the merge set is missing
+- any required merge artifact is missing
+- merge reports unresolved conflicts
+- merge is blocked
+- merged output is incomplete
+
+NEVER DO
+- do not merge failed or unreviewed package versions as if they were accepted
+- do not treat changed files alone as a complete merge result without the Integration Report / Manifest context
+
+==============================================================================
+7. PACKAGE LOOP CARDS
+==============================================================================
+
+--------------------------------------------------------------------------
+PACKAGE IMPLEMENTATION CARD
+--------------------------------------------------------------------------
+
+NOW
+Implement one package.
+
+NEEDS
+The Console provides the required artifacts. Verify the input looks correct before pasting into the LLM.
+
+Required:
+- Stage 04 prompt
+- this Work Package File
+- Architecture Spec
+- any package-specific dependency artifacts
+
+PASTE
+Paste the Stage 04 authoritative prompt, then the full Work Package File, then the required supporting artifacts.
+
+EXPECT
+- package implementation artifacts defined by the work package contract
+- structured Delivery Report
+
+SAVE
+Click Save in the Console. The artifact is written to the workspace automatically.
+
+NEXT
+Send that exact saved package output, including the Delivery Report, to Stage 05 review.
+
+STOP IF
+- output is partial
+- wrong format
+- missing sections
+- Delivery Report missing
+- clearly off-contract
+
+--------------------------------------------------------------------------
+PACKAGE REWORK CARD AFTER REVIEW FAIL
+--------------------------------------------------------------------------
+
+NOW
+Repair one failed package.
+
+NEEDS
+The Console provides the required artifacts. Verify the input looks correct before pasting into the LLM.
+
+Required:
+- repair / escalation guidance from the saved Stage-03 artifacts, including the Repair Prompt Template if your run emitted one
+- same Work Package File
+- failed implementation output, including the Delivery Report
+- failed review output
+- Architecture Spec
+
+PASTE
+Use the saved Stage-03 repair guidance.
+If your saved artifacts include a Repair Prompt Template, fill it in directly:
+- failed implementation -> {{PREVIOUS_OUTPUT}}
+- critical/major findings -> {{FAILED_CHECKS}}
+- specific requested fixes -> {{ISSUE_LIST}}
+
+If no ready-to-use template block was emitted:
+- assemble the same information in that order
+- include the full Work Package File alongside it
+
+EXPECT
+- revised package implementation
+- revised Delivery Report
+
+SAVE
+Click Save in the Console. The artifact is written to the workspace automatically.
+
+NEXT
+Run Stage 05 review again on the revised package.
+
+STOP IF
+- Work Package File is unclear
+- Architecture Spec is ambiguous
+- required upstream artifact is missing or wrong
+
+--------------------------------------------------------------------------
+ACCEPTED PACKAGE HOLDING CARD
+--------------------------------------------------------------------------
+
+NOW
+Hold an accepted package for merge.
+
+NEEDS
+The Console tracks accepted packages automatically. Verify that the pass review genuinely matches the implementation before proceeding to Stage 06.
+
+Required:
+- accepted package output, including the Delivery Report
+- pass review for that exact package version
+
+PASTE
+No new chat unless merge is ready.
+
+EXPECT
+Clean accepted package set ready for merge.
+
+SAVE
+No manual file handling is required here. The Console holds accepted packages for merge automatically.
+
+NEXT
+Send only accepted packages into Stage 06 merge.
+
+STOP IF
+- pass review does not clearly match the exact saved package version
+
+==============================================================================
+8. FAILURE ROUTING
+==============================================================================
+
+If a package output is incomplete:
+- save it in the Console if needed for traceability
+- mark it incomplete
+- do not send it downstream as valid
+- rerun or repair through Stage 04
+- if incompleteness comes from unclear contract inputs, route upstream
+
+If a reviewer fails a package:
+- fail is a stop signal for that package
+- save the fail review in the Console
+- do not mark the package accepted
+- route back to Stage 04 rework
+- route further upstream only if the failure reveals a contract problem
+
+If a merge is blocked:
+- blocked merge is a stop signal for integration
+- save the full merge artifact set or blocked-state report in the Console
+- identify whether the blocker is package-level or contract-level
+- route to Stage 04 or 05 for package-level issues
+- route to Stage 02 or 03 for architecture or work-package issues
+- do not declare success until the block is cleared and a valid merge result is saved
+
+If the contract closure gate says PAUSE_FOR_DECISIONS:
+- treat it as a hard stop, not a warning
+- save the full PAUSE artifact in the Console
+- keep visible and preserved:
+  - Gate Result
+  - Blocking Contract-Critical Decisions
+  - Minimal Decision Questionnaire
+  - Resume Instruction
+- use the questionnaire to resolve the decisions, but do not discard the rest
+- do not run Stage 04
+- resolve the blocking decisions explicitly
+- regenerate or resume the affected authoritative artifact exactly as instructed
+- continue only after the gate is cleared
+
+If a required file is missing:
+- stop immediately
+- do not guess
+- do not substitute an optional file
+- recover or recreate the missing file through the correct upstream stage
+- restart the blocked step only after the required file exists and is saved
+
+==============================================================================
+9. UPSTREAM ROUTING TEST
+==============================================================================
+
+Route upstream when the problem is not just bad execution, but bad contract basis.
+
+Typical upstream signs:
+- Work Package File and Architecture Spec disagree
+- Architecture Spec is ambiguous
+- Stage-03 work-package boundaries are missing or contradictory
+- reviewer says the package cannot be judged safely because the contract is unclear
+- merge reveals incompatible contracts between packages
+- required decisions were never closed
+
+Typical local package signs:
+- contract was clear
+- implementation simply missed requirements
+- output format was incomplete
+- reviewer gave concrete fixable findings
+
+==============================================================================
+10. FILE MANAGEMENT
+==============================================================================
+
+The Console manages all file organization, naming, and versioning automatically.
+
+The operator's file hygiene responsibility is limited to:
+- verifying that the prompt folder contains the correct prompt files
+- not manually modifying files in the workspace folder outside the Console
+- using the Console's file import feature for LLM-generated files instead of manual copying
+
+==============================================================================
+11. FINAL REMINDER
+==============================================================================
+
+This file is not here to make the workflow fancy.
+It is here to reduce operator mistakes when attention is low.
+
+When uncertain:
+- slow down
+- return to the current stage card
+- re-check the contract and required artifacts
+- read the output again
+- obey the stop condition
+
+Clear execution beats fast improvisation.

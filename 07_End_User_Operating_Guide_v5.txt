@@ -1,0 +1,1275 @@
+MULTI-LLM PIPELINE OPERATING GUIDE
+For Normal Users
+Language: English
+Version: 5
+
+======================================================================
+1. WHAT THIS SYSTEM IS FOR
+======================================================================
+
+This system helps you run a larger project through several specialized AI roles instead of asking one model to do everything at once.
+
+Instead of saying:
+"Please build the whole project"
+
+you split the work into stages:
+
+1. Requirements Engineer
+2. Technical Architect
+3. Project Orchestrator
+4. Module Implementer
+5. Code Reviewer
+6. Merge Coordinator
+
+Each role has a different job.
+That makes the output more structured, easier to check, and safer to integrate.
+
+This workflow is especially useful when:
+- the project has multiple files,
+- interfaces matter,
+- wrong assumptions would be expensive,
+- you want cleaner reviews,
+- or one-shot generation tends to fail.
+
+Operator note:
+You do not need to be a programmer to run this pipeline.
+The Console handles artifact organization, versioning, and persistence automatically.
+Your job is to provide good inputs, evaluate outputs honestly, and route failures to the correct upstream stage.
+
+======================================================================
+1b. HOW 07, 08, AND 09 WORK TOGETHER
+======================================================================
+
+This file, 07_End_User_Operating_Guide_v5, explains the pipeline rules.
+Use it to understand:
+- the six roles,
+- the correct stage order,
+- go / no-go rules,
+- contract closure gate behavior,
+- evidence classes,
+- rework routing,
+- and troubleshooting.
+
+The separate file 08_Operator_Run_Layer_v5 is the operator decision companion.
+Use it during actual execution when you need help deciding things such as:
+- is this output good enough to proceed,
+- should this be repaired locally or routed upstream,
+- does this failure indicate a spec gap or an implementation bug,
+- should I escalate,
+- and does this review result allow merge or require rework.
+
+The Operator Console, 09_Operator_Console_v5.html plus its required js/ module files, handles the operational mechanics.
+It is the authoritative operational state manager.
+It:
+- requires a project workspace folder,
+- requires a separate prompt folder,
+- saves artifacts automatically,
+- maintains the manifest automatically,
+- writes workspace state and audit trail automatically,
+- tracks artifact status automatically,
+- and enforces stage progression through the state machine.
+
+Simple split:
+- Use 07 to understand the rules.
+- Use 08 to make execution decisions the Console cannot automate.
+- Use 09 to run the workflow, persist artifacts, and move through the allowed steps.
+
+Important:
+09 is not a new stage and not a new role.
+It is the authoritative operational state manager for the same six-stage pipeline.
+07 defines the rules the Console implements.
+08 helps the operator make judgment decisions the Console cannot automate.
+
+If you are ever unsure which document or tool to rely on:
+- open 07 when you need the big picture or need to know whether a transition is allowed,
+- open 08 when you need help deciding whether an output is acceptable, whether to escalate, or where a failure should be routed,
+- trust 09 for saving, tracking, file management, manifest maintenance, state resume, and stage progression.
+
+Operator-console note:
+If you use the 09 console bundle (09_Operator_Console_v5.html plus its required js/ module files), complete workspace folder selection, prompt folder selection, and 0.5 LLM Availability before preparing the first Stage-01 bundle.
+That operator-side pre-flight does not create a new authoritative pipeline stage.
+It creates the current Available LLMs input that Stage 03 can consume for model routing.
+
+The Console (09) is the authoritative operational state manager.
+It persists all artifacts, maintains the manifest, and enforces stage progression.
+07 defines the rules the Console implements.
+08 helps the operator make judgment decisions the Console cannot automate.
+If the Console blocks a transition, the reason comes from 07's rules.
+If the operator needs to decide whether a review result is acceptable, 08 provides the decision framework.
+
+======================================================================
+2. THE SIX ROLES IN SIMPLE TERMS
+======================================================================
+
+----------------------------------------------------------------------
+1. Requirements Engineer
+----------------------------------------------------------------------
+
+What it does:
+This role turns your rough idea into a formal project brief.
+
+What you give it:
+- your rough project description
+- your goals
+- your constraints
+- any existing context you already know
+
+What you get back:
+- a Master Briefing
+
+Why it matters:
+This stage makes sure the project is clearly defined before technical design starts.
+
+Think of it as:
+"Make sure we are solving the right problem."
+
+Practical limit:
+If the briefing defers more than 3 contract-critical decisions to the Technical Architect, the briefing is likely too weak. Go back and clarify before proceeding.
+
+----------------------------------------------------------------------
+2. Technical Architect
+----------------------------------------------------------------------
+
+What it does:
+This role turns the Master Briefing into a technical blueprint.
+
+What you give it:
+- the Master Briefing
+- any relevant existing code context
+
+What you get back:
+- an Architecture Spec
+
+Why it matters:
+This stage defines modules, interfaces, shared data structures, dependencies, and rules.
+
+Think of it as:
+"Decide how the system must be shaped so different parts can fit together."
+
+----------------------------------------------------------------------
+3. Project Orchestrator
+----------------------------------------------------------------------
+
+What it does:
+This role breaks the project into work packages and decides which model should do which package.
+
+What you give it:
+- the Master Briefing
+- the Architecture Spec
+
+What you get back:
+- if the Architecture Spec is CLOSED:
+  - one Master Orchestration File
+  - one separate Work Package File per implementation work package
+  - optional Execution Checklist
+- if the Architecture Spec is PAUSE_FOR_DECISIONS:
+  - one pause artifact containing:
+    - Gate Result
+    - Blocking Contract-Critical Decisions
+    - Minimal Decision Questionnaire
+    - Resume Instruction
+
+Why it matters:
+This stage turns architecture into an actual execution plan and emits the authoritative Stage-03 artifacts used downstream.
+
+Think of it as:
+"Turn the blueprint into a build schedule and hand over the build packets."
+
+----------------------------------------------------------------------
+4. Module Implementer
+----------------------------------------------------------------------
+
+What it does:
+This role performs exactly one work package.
+
+What you give it:
+- one full Work Package File
+- the Architecture Spec
+- relevant files / code / outputs from earlier packages
+
+What you get back:
+- the actual code or artifact for that package
+- a delivery report explaining what changed
+
+Why it matters:
+This is the execution stage, but under strict boundaries.
+The implementer prompt lives inside the Work Package File, but the full Work Package File is the authoritative package artifact.
+
+Think of it as:
+"Build only this one assigned piece, and touch nothing else."
+
+----------------------------------------------------------------------
+5. Code Reviewer
+----------------------------------------------------------------------
+
+What it does:
+This role checks whether one package result is actually correct and compliant.
+
+What you give it:
+- Master Briefing
+- Architecture Spec
+- the full Work Package File
+- code / artifacts from the Module Implementer
+- optional test or validator output
+
+What you get back:
+- a Review Report
+- pass / fail judgment
+- exact findings
+- repair notes
+- merge notes
+
+Why it matters:
+A result can look fine and still be wrong for the pipeline.
+This stage catches that.
+The reviewer should use the full Work Package File, not only an extracted prompt body.
+
+Think of it as:
+"Check whether this piece really matches the plan."
+
+----------------------------------------------------------------------
+6. Merge Coordinator
+----------------------------------------------------------------------
+
+What it does:
+This role integrates reviewed pieces into a larger whole.
+
+What you give it:
+- Architecture Spec
+- Review Reports
+- modules / artifacts to integrate
+- optional work package contracts
+
+What you get back:
+- Integration Report
+- changed files
+- integration manifest
+- conflict report
+- boundary validation performed
+- remaining boundary checks
+- or a blocked merge result
+
+Why it matters:
+This stage checks whether individually good pieces also work together.
+
+Think of it as:
+"Now make the approved parts fit together safely."
+
+======================================================================
+3. THE CORRECT ORDER
+======================================================================
+
+Use the stages in this order:
+
+Step 1 -> Requirements Engineer
+Step 2 -> Technical Architect
+Step 3 -> Project Orchestrator
+Step 4 -> Module Implementer
+Step 5 -> Code Reviewer
+Step 6 -> Merge Coordinator
+
+Important:
+You do not usually run the Implementer once for the whole project.
+You run it once per work package.
+
+That means the real middle of the workflow often looks like this:
+
+Requirements Engineer
+-> Technical Architect
+-> Project Orchestrator
+-> Implement Package 1
+-> Review Package 1
+-> Implement Package 2
+-> Review Package 2
+-> Implement Package 3
+-> Review Package 3
+-> Merge Coordinator
+
+If a review fails, you do not continue to merge.
+You repair first.
+
+Practical note about 08:
+This stage order does not change.
+Use 08 during the live run of each step, but do not treat 08 as an extra stage in the sequence.
+
+======================================================================
+3b. GO / NO-GO CHECKLISTS BETWEEN STAGES
+======================================================================
+
+Use these checklists before moving forward.
+If any required item is missing, stop and fix it first.
+
+----------------------------------------------------------------------
+Requirements Engineer -> Technical Architect
+----------------------------------------------------------------------
+
+GO only if:
+- you have the latest authoritative Master Briefing
+- the briefing includes a clear project summary
+- scope and definition of done are present
+- open questions are listed if anything is still unresolved
+- the readiness section is present
+- complexity and safety sections are present
+- stable requirement IDs appear where the briefing expects them
+
+NO-GO if:
+- the briefing is obviously incomplete
+- major decisions are still missing but not listed as open
+- the Requirements Engineer output is older than a later corrected version
+
+----------------------------------------------------------------------
+Technical Architect -> Project Orchestrator
+----------------------------------------------------------------------
+
+GO only if:
+- you have the latest authoritative Architecture Spec
+- the architecture readiness status allows orchestration
+- the Architecture Spec ends with Progression Status: CLOSED
+- modules, interfaces, shared types, and artifact rules are defined clearly enough to split work
+- architecture contract IDs appear where expected
+- traceability to briefing IDs exists, or degraded traceability is clearly stated
+- restricted or blocked areas are clearly marked if the spec is only partially ready
+
+NO-GO if:
+- the architect says the spec is not safe to freeze
+- the Architecture Spec ends with Progression Status: PAUSE_FOR_DECISIONS
+- major public contracts are missing
+- interface-sensitive areas are still vague
+- you are about to orchestrate from an older spec revision
+
+----------------------------------------------------------------------
+Module Implementer -> Code Reviewer
+----------------------------------------------------------------------
+
+GO only if:
+- you have the latest authoritative Work Package File
+- the Implementer stayed within the allowed file boundaries
+- changed files, created files, and untouched files are clearly declared
+- requirement IDs and contract IDs are carried forward when the package provided them
+- the validation section is not empty
+- boundary verification status is stated
+- any non-executable checks are explained honestly
+
+NO-GO if:
+- the delivery report is missing
+- changed files are unclear
+- the Implementer invented new contracts
+- required validation or boundary-check reporting is missing
+
+----------------------------------------------------------------------
+Code Reviewer -> Merge Coordinator
+----------------------------------------------------------------------
+
+GO only if:
+- the review verdict is acceptable for merge
+- all merge-blocking findings are resolved
+- required review reports exist for the modules or artifacts being merged
+- interface-sensitive or safety-relevant items have review coverage
+- no unresolved spec gap is blocking integration
+- the review is based on the latest implementation and latest Architecture Spec
+
+NO-GO if:
+- required reviews are missing
+- merge-blocking findings remain open
+- the reviewer says the package is not safe for merge
+- the implementation or review was produced against an outdated Architecture Spec
+
+Practical use of 07 vs 08 here:
+- Use 07 to decide whether the handoff is GO or NO-GO.
+- Use 08 if the gate is unclear in practice and you need help judging whether the output is good enough to proceed or should be routed back.
+
+======================================================================
+4. WHAT TO COPY INTO EACH ROLE
+======================================================================
+
+This section tells you what to paste into each role.
+It remains the stable reference for stage inputs and expected outputs.
+
+When you are actively running a step and need help deciding things such as:
+- whether the current output is good enough to proceed,
+- whether a failure is local or upstream,
+- whether to escalate,
+- or whether a reroute is required,
+open 08 alongside this section.
+Use 07 for the rule. Use 08 for the judgment call.
+Use the Console for the operational mechanics.
+
+----------------------------------------------------------------------
+Stage 1 - Requirements Engineer
+----------------------------------------------------------------------
+
+Paste:
+- your rough project idea
+- what you want built
+- what matters most
+- any known restrictions
+- whether there is existing code
+- any deadline, quality, or format expectations
+
+Good example:
+"I need a Python tool that reads STL files, converts them into a simplified grid representation, and exports build instructions as PDF. It must work on Windows, avoid very heavy dependencies, and preserve deterministic output for the same input."
+
+Do not worry if your description is incomplete.
+This stage is supposed to ask follow-up questions.
+
+Expected output:
+- Master Briefing
+
+The Console saves the Stage-01 artifact automatically when you click Save.
+It also records the revision, manifest entry, and provenance chain automatically.
+
+----------------------------------------------------------------------
+Stage 2 - Technical Architect
+----------------------------------------------------------------------
+
+Paste:
+- the full Master Briefing
+- any existing code context if relevant
+
+Expected output:
+- Architecture Spec
+
+The Console saves the Stage-02 artifact automatically when you click Save.
+
+How to read Architecture Readiness:
+- If status is "Ready for Orchestration", proceed normally.
+- If status is "Partially Ready - Restricted Areas", proceed only for unaffected packages and do not let the Orchestrator generate work for blocked areas.
+- If status is "Not Safe to Freeze", stop and go back upstream before orchestration.
+
+How to read the Contract Closure Gate:
+- If the Architecture Spec ends with Progression Status: CLOSED, you may run the Project Orchestrator normally.
+- If the Architecture Spec ends with Progression Status: PAUSE_FOR_DECISIONS, do not run the Project Orchestrator for package generation yet.
+- If a Stage-03 PAUSE_FOR_DECISIONS artifact is produced, preserve the full artifact and answer only the Minimal Decision Questionnaire section before resuming from the correct upstream point.
+- Practical warning: unresolved contract-critical decisions are dangerous because they can otherwise turn into silent architecture assumptions, package assumptions, or review conflicts.
+
+Related rule for the Master Briefing:
+- If the Requirements Engineer marks the briefing as "Partially Ready - Architectural Risk Exists", expect the Technical Architect to restrict or block downstream work until the missing constraints are clarified.
+
+If you are standing at this gate and are unsure whether the architecture is actually safe to advance, use 08.
+The gate rule still comes from 07.
+
+----------------------------------------------------------------------
+Stage 3 - Project Orchestrator
+----------------------------------------------------------------------
+
+Paste:
+- the full Master Briefing
+- the full Architecture Spec
+- Available LLMs for this project, if you are using the operator LLM-availability step or the 09 console bundle
+
+Expected output:
+- if the Architecture Spec is CLOSED:
+  - one Master Orchestration File
+  - one separate Work Package File per implementation work package
+  - optional Execution Checklist
+- if the Architecture Spec is PAUSE_FOR_DECISIONS:
+  - one PAUSE_FOR_DECISIONS artifact containing:
+    - Gate Result
+    - Blocking Contract-Critical Decisions
+    - Minimal Decision Questionnaire
+    - Resume Instruction
+  - no Work Package Files yet
+
+Important for the synchronized Version 5 workflow:
+- Under CLOSED, Stage 03 already returns separated authoritative artifacts.
+- Available LLMs is an operator-side Stage-03 input, not a Stage-03 output artifact.
+- The Console saves each Stage-03 artifact to the workspace automatically and tracks each one in the manifest.
+- The Work Package File is the main per-package downstream artifact.
+- The implementer prompt is a component inside the Work Package File, but the full Work Package File is what downstream stages should use.
+- Manual post-splitting should be treated only as exceptional recovery if a stage output itself was malformed.
+- Use 08 when you need to decide whether a PAUSE_FOR_DECISIONS result really blocks progress, whether a package boundary is acceptable, or whether downstream work should wait.
+
+----------------------------------------------------------------------
+Stage 4 - Module Implementer
+----------------------------------------------------------------------
+
+Paste:
+- one full Work Package File
+- the Architecture Spec
+- the exact files that package is allowed to work on
+- any prior outputs this package depends on
+
+Do not paste the entire project unless the package really needs it.
+The implementer prompt is inside the Work Package File, but the full Work Package File is the authoritative artifact for this handoff.
+
+Expected output:
+- implementation result
+- delivery report
+
+The Console saves each package result automatically when you click Save.
+If the output contains actual files, use the Console's file import feature to drop those files directly into the workspace.
+
+If you are actively running a package and are unsure whether a failure is a local repair or an upstream problem, use 08.
+
+----------------------------------------------------------------------
+Stage 5 - Code Reviewer
+----------------------------------------------------------------------
+
+Paste:
+- Master Briefing
+- Architecture Spec
+- the full Work Package File
+- the package output from the Implementer
+- optional test results
+
+Expected output:
+- Review Report
+- PASS / PASS WITH NOTES / FAIL
+- one exact final routing block as the last section:
+  - FINAL_DISPOSITION: ACCEPT
+  - or FINAL_DISPOSITION: REWORK
+
+The Console writes each review to disk when you save it.
+It also updates artifact status and routes Stage 05 automatically from the Final Disposition block.
+
+Use the full Work Package File for review, not only an extracted implementer prompt body.
+
+If you are unsure whether the next action is repair, re-review, merge readiness, or upstream routing, check 07 for the rule and 08 for the decision framework.
+
+----------------------------------------------------------------------
+Stage 6 - Merge Coordinator
+----------------------------------------------------------------------
+
+Paste:
+- Architecture Spec
+- Review Reports for the modules to be merged
+- the reviewed module outputs
+- only exact output/review pairs where the review ends with FINAL_DISPOSITION: ACCEPT
+- optional work package contracts
+
+Expected output:
+- Integration Report
+- changed files
+- integration manifest
+- conflict report
+- Compatibility Scan Summary
+- boundary validation performed
+- remaining boundary checks
+- or blocked merge result
+
+The Console saves the merge result automatically when you click Save.
+If the merger outputs changed files, use the Console's file import feature to place those files into the workspace with their real filenames.
+
+Optional final whole-system review:
+After merge, you may run the final review prompt produced by the Project Orchestrator.
+Use it when:
+- the project is important,
+- the codebase has multiple files,
+- interfaces are critical,
+- or you want one final whole-system quality pass.
+
+This is not a replacement for package-level reviews.
+It is an additional final check on the integrated result.
+
+======================================================================
+5. WHAT OUTPUT TO EXPECT FROM EACH STAGE
+======================================================================
+
+You should expect these deliverables:
+
+Requirements Engineer:
+- Master Briefing
+
+Technical Architect:
+- Architecture Spec
+
+Project Orchestrator:
+- if the Architecture Spec is CLOSED:
+  - Master Orchestration File
+  - one separate Work Package File per implementation work package
+  - optional Execution Checklist
+- if the Architecture Spec is PAUSE_FOR_DECISIONS:
+  - one pause artifact containing Gate Result, Blocking Contract-Critical Decisions, Minimal Decision Questionnaire, and Resume Instruction
+
+Module Implementer:
+- package implementation
+- delivery report
+
+Code Reviewer:
+- review report
+- findings with severity
+- verdict
+- final disposition block (ACCEPT / REWORK)
+
+Merge Coordinator:
+- integration report
+- changed files
+- integration manifest
+- conflict report
+- Compatibility Scan Summary
+- boundary validation performed
+- remaining boundary checks
+
+If a stage gives you much less than this, something probably went wrong.
+
+Where 08 helps:
+If the stage output is present but you do not know whether it is good enough to proceed, whether it should be escalated, or whether it should be routed back upstream, 08 is the companion document to open next.
+07 still defines what the output should contain.
+
+======================================================================
+6. WHEN TO STOP AND GO BACK
+======================================================================
+
+This is one of the most important parts of the whole workflow.
+
+You should go back to an earlier stage when the current stage reports that a problem is upstream, not local.
+
+Go back to Requirements Engineer when:
+- the project goal is still unclear
+- important constraints were never defined
+- success criteria are vague
+- a user or business decision is missing
+- the Technical Architect says the briefing is too weak
+
+Go back to Technical Architect when:
+- a package cannot be implemented without inventing a new interface
+- two modules need a shared type that was never defined
+- the merge step would require changing contracts
+- the reviewer finds architecture-level ambiguity
+- the orchestrator says the spec is incomplete in a contract-critical area
+- the Architecture Spec ends with Progression Status: PAUSE_FOR_DECISIONS
+
+Go back to Project Orchestrator when:
+- the package boundaries were wrong
+- too much was packed into one task
+- a package needs a different sequence
+- downstream roles keep failing because the work package contract is weak
+
+Go back to Module Implementer when:
+- the reviewer found implementation mistakes
+- the package output is incomplete
+- wrong files were modified
+- required artifacts are missing
+
+Do not go straight to merge when review is failed.
+Do not ask the merger to "just fix it" if the package is wrong.
+
+Practical split:
+- Use 07 to decide where the problem belongs.
+- Use 08 when the failure is ambiguous and you need help deciding whether it belongs in repair, re-review, orchestration, architecture, or requirements.
+
+======================================================================
+6b. REWORK ROUTING DECISION MAP
+======================================================================
+
+Use this table when something goes wrong.
+
+| Problem Type | What it Usually Means | Where to Send It | Typical Action |
+|--------------|------------------------|------------------|----------------|
+| Implementation bug | The package contract was clear enough, but the code or artifact is wrong | Module Implementer | Repair the same package and review it again |
+| Bad package contract | The Work Package File omitted needed boundaries, files, or checks | Project Orchestrator | Regenerate only the affected Work Package File or small affected subset |
+| Spec gap | The Architecture Spec is missing a shared type, interface rule, artifact rule, or other binding contract | Technical Architect | Revise the Architecture Spec, then re-orchestrate affected packages |
+| Stale artifact usage | Someone used an old briefing, old spec, old Work Package File, or old review | Correct upstream stage first, then downstream again | Replace stale inputs with the newest authoritative versions and re-run affected downstream steps |
+| Changed frozen contract | A revised Architecture Spec or briefing changed a public contract or locked decision | Technical Architect, then Project Orchestrator | Regenerate the broader Stage-03 artifact set, then re-run affected implementation and review |
+| Missing product decision | The technical stages cannot continue because the user never chose an option | Requirements Engineer | Clarify the decision, then refresh downstream artifacts |
+
+Simple routing rule:
+- If the code is wrong, repair the same package.
+- If the Work Package File is wrong, go to the Orchestrator.
+- If the technical rules are missing or changed, go to the Architect.
+- If the project decision itself is missing, go to the Requirements Engineer.
+
+08 is useful here when the destination is not obvious and you need help deciding whether the problem is truly local, package-level, architecture-level, or product-level.
+
+======================================================================
+7. HOW TO RUN ONE PACKAGE AT A TIME
+======================================================================
+
+This is the recommended way to use the system.
+
+Step 1:
+Run the Requirements Engineer.
+The Console persists the Master Briefing when you save it.
+
+Step 2:
+Run the Technical Architect.
+The Console persists the Architecture Spec when you save it.
+
+Step 3:
+Run the Project Orchestrator.
+
+If Stage 03 is CLOSED:
+- the Console records the Master Orchestration File,
+- records each Work Package File as its own artifact,
+- records the optional Execution Checklist if it is present,
+- and keeps those artifacts as the downstream handoff set.
+
+If the Orchestrator returns a PAUSE_FOR_DECISIONS artifact:
+- the Console records the full pause artifact,
+- use the Minimal Decision Questionnaire as the immediate action list,
+- preserve the Gate Result, Blocking Contract-Critical Decisions, and Resume Instruction with it,
+- resume from the correct upstream point,
+- and do not start implementation yet.
+
+Step 4:
+Pick one work package, usually starting with:
+- packages with no dependencies,
+- or the package that defines shared foundations.
+
+Step 5:
+Send the full Work Package File, the current Architecture Spec, and any package-required dependency artifacts to the Module Implementer.
+
+Step 6:
+Send the result to the Code Reviewer.
+
+Step 7:
+If the review passes, move to the next package.
+The Console has already persisted the implementation and review artifacts when they were saved.
+
+Step 8:
+Move to the next package.
+
+Step 9:
+After all required packages are reviewed successfully, run the Merge Coordinator.
+
+Why this is better than doing everything at once:
+- easier to catch mistakes
+- easier to repair
+- easier to compare versions
+- much lower risk of total project drift
+
+Where 08 fits into this loop:
+- Use 07 to understand the loop.
+- Use 08 when you need help deciding whether a package is actually ready to proceed, whether a failed result should be escalated, or whether a reroute is required.
+- The Console handles saving, tracking, and file management throughout the loop.
+
+======================================================================
+8. HOW TO HANDLE FAILED REVIEWS
+======================================================================
+
+A failed review is normal.
+It does not mean the workflow failed.
+It means the quality gate worked.
+
+When a review fails:
+
+1. Read the verdict
+2. Read the findings from top to bottom
+3. Focus first on:
+   - CRITICAL findings
+   - MAJOR findings
+4. Ignore MINOR issues until the blocking issues are fixed
+5. Send the package back for repair
+
+Important:
+Repair the same package.
+Do not restart the whole project unless the problem is upstream.
+
+Typical repair cycle:
+- Implementer produces package
+- Reviewer fails package
+- Implementer repairs package
+- Reviewer reviews again
+
+If the reviewer says the problem is architectural, do not keep repairing locally.
+Go back to the Technical Architect.
+If the reviewer says the package contract itself is weak or missing something important, go back to the Project Orchestrator.
+
+----------------------------------------------------------------------
+How to Use the Repair Prompt Template
+----------------------------------------------------------------------
+
+Where to find the template:
+The Master Orchestration File should contain the Stage-03 repair / escalation guidance.
+Some Stage-03 outputs may also include a ready-to-use Repair Prompt Template and Escalation Prompt Template.
+If your saved Stage-03 artifacts include those templates, use them directly.
+If they do not, assemble the repair handoff from the same full Work Package File, the failed implementation output, the failed Review Report, the current Architecture Spec, and the reviewer findings you need fixed.
+
+How to fill it in:
+If a ready-to-use template is present, fill it in like this:
+- {{PREVIOUS_OUTPUT}}:
+  Paste the full implementation output that failed review.
+  This is the content from file [package filename]_Stage04_Output.txt.
+
+- {{FAILED_CHECKS}}:
+  Copy the findings from the Review Report that have severity CRITICAL or MAJOR.
+  Include the finding ID, location, issue description, and expected behavior.
+
+- {{ISSUE_LIST}}:
+  List only the specific fixes needed.
+  Copy directly from the reviewer's "Notes for Repair Step" section if available.
+
+What model to use:
+Usually the same model that produced the original implementation.
+
+If the same model already failed twice on the same issue:
+Use the Escalation Prompt Template if your saved Stage-03 artifacts include it. Otherwise keep the same escalation information structure and send the handoff to the escalation model listed in the work package.
+
+Practical example:
+
+Before (template):
+## Failed Checks
+{{FAILED_CHECKS}}
+
+After (filled in):
+## Failed Checks
+- Finding R1-CRITICAL: Interface Compliance
+  Location: brick_placer.py:place_bricks()
+  Issue: Return type is List[Brick] but spec requires Dict[Position, Brick]
+  Expected: Dict[Position, Brick] as defined in Architecture Spec Section 5
+
+What to do with the output:
+- The Console saves the repaired implementation as a new revision automatically
+- Send it to the Code Reviewer again
+- Do not send to Merge until the review passes
+
+Practical note:
+If you understand that something is wrong but are unsure whether it is a normal repair, an escalation case, or an upstream reroute, that is exactly where 08 is meant to help.
+
+======================================================================
+9. SPEC GAP VS IMPLEMENTATION BUG
+======================================================================
+
+This distinction matters a lot.
+
+----------------------------------------------------------------------
+Implementation Bug
+----------------------------------------------------------------------
+
+This means:
+The plan was clear enough, but the implementation did it wrong.
+
+Examples:
+- wrong function signature used
+- required file missing
+- wrong error handling
+- forbidden file modified
+- test failed because the logic is wrong
+
+Where to send it:
+Back to the Module Implementer
+
+----------------------------------------------------------------------
+Spec Gap
+----------------------------------------------------------------------
+
+This means:
+The plan itself is missing something important, so the Implementer or Merger would have to invent rules.
+
+Examples:
+- shared type not defined
+- interface not fully specified
+- output schema unclear
+- two modules need a dependency rule that the spec never stated
+- merge would require creating a new helper that affects boundaries
+
+Where to send it:
+Back to the Technical Architect
+Sometimes back to the Requirements Engineer if it is really a product decision.
+
+Simple rule:
+If the code is wrong, fix the implementation.
+If the rules are missing, fix the spec.
+
+======================================================================
+10. HOW TO KEEP FILENAMES AND ARTIFACTS ORGANIZED
+======================================================================
+
+Do not keep everything in one giant text file.
+But you no longer need to organize the pipeline manually.
+
+The Console creates and maintains the workspace folder structure automatically:
+- _console/ — manifest, state, audit log, prompt snapshots
+- stage01/ through stage06/ — artifacts per stage
+- references/ — imported reference files
+- archive/ — archived states from workspace resets
+
+Artifact filenames are generated deterministically by the Console.
+Example pattern:
+- 01_Master_Briefing__artifact_000001__r001.txt
+
+If actual code or implementation files are produced, import them through the Console so they are written into the workspace and tracked in the artifact chain.
+
+Useful habit:
+Do not rely on filenames like:
+- final.txt
+- really_final.txt
+- latest_new.txt
+
+Those become confusing very quickly.
+
+The good news is that revision numbering is now handled automatically by the Console.
+You still need naming discipline conceptually, but you do not need to create, organize, or version these filenames by hand.
+
+07 defines the artifact discipline.
+08 helps you decide whether an artifact is acceptable to proceed or whether it forces rework.
+09 handles the file organization, revision numbering, manifest maintenance, and status tracking.
+
+======================================================================
+10b. HOW THE ARTIFACT MANIFEST WORKS
+======================================================================
+
+The Operator Console maintains the artifact manifest automatically.
+Every artifact save updates the manifest with artifact ID, type, revision, status, content hash, and provenance chain.
+The manifest file (_console/artifact_manifest.json) is written to the workspace on every save.
+Manual ledger maintenance is no longer required.
+
+This matters because stale-artifact problems are still real.
+The difference is that the Console now tracks CURRENT, SUPERSEDED, STALE, and MISSING_ON_DISK status automatically and can validate workspace integrity on reload.
+
+Traceability note:
+Stable IDs and contract references still matter.
+If a package, review, or merge report points to old requirement IDs or old contract IDs, that is still a warning sign that you may be using an outdated artifact.
+
+======================================================================
+11. MERGE READINESS WARNINGS
+======================================================================
+
+Before sending anything to the Merge Coordinator, stop and check these warnings.
+
+Do NOT send artifacts to Merge if:
+- required reviews are missing for interface-sensitive items
+- required reviews are missing for safety-relevant items
+- review findings still contain unresolved merge-blocking issues
+- the latest Architecture Spec invalidated earlier implementation or review artifacts
+- the modules were reviewed against an older package contract than the one now marked authoritative
+- a spec gap is still open in an area the merge depends on
+
+Clean merge rule in plain English:
+A clean merge should not depend on "we will probably test that later"
+if an important boundary check was realistically possible now.
+
+If you know merge is probably allowed but are unsure whether the review evidence is actually sufficient, use 08 for the merge-readiness decision.
+
+======================================================================
+12. WORKED EXAMPLE
+======================================================================
+
+Here is a simple example of how a normal user would actually run the system.
+
+Project idea:
+"I want a Python tool that reads a CSV file of products, validates the rows, and exports a cleaned JSON file plus a short summary report."
+
+----------------------------------------------------------------------
+Stage 1 - Requirements Engineer
+----------------------------------------------------------------------
+
+You paste your rough idea.
+
+The Requirements Engineer asks questions like:
+- What counts as an invalid row?
+- What JSON structure do you want?
+- Should row order be preserved?
+- Are there performance limits?
+- Must this work on a specific Python version?
+
+Final output:
+- Master Briefing
+
+The Console saves the Stage-01 artifact automatically.
+
+----------------------------------------------------------------------
+Stage 2 - Technical Architect
+----------------------------------------------------------------------
+
+You paste the Master Briefing.
+
+The Technical Architect produces:
+- modules like:
+  - csv_loader.py
+  - validator.py
+  - json_exporter.py
+  - summary_report.py
+  - main.py
+- shared types
+- interface signatures
+- artifact rules
+- error behavior
+- dependency map
+
+Final output:
+- Architecture Spec
+
+The Console saves the Stage-02 artifact automatically.
+
+----------------------------------------------------------------------
+Stage 3 - Project Orchestrator
+----------------------------------------------------------------------
+
+You paste:
+- Master Briefing
+- Architecture Spec
+- Available LLMs for this project if you are running with operator-side model selection
+
+If the Architecture Spec is CLOSED, the Orchestrator creates:
+- one Master Orchestration File
+- separate Work Package Files such as:
+  - T1: shared models and validation contracts
+  - T2: CSV loader
+  - T3: row validator
+  - T4: JSON exporter
+  - T5: summary report
+  - T6: main CLI wiring
+- optional Execution Checklist
+
+If the Architecture Spec is PAUSE_FOR_DECISIONS, the Orchestrator must stop and return one full pause artifact containing:
+- Gate Result
+- Blocking Contract-Critical Decisions
+- Minimal Decision Questionnaire
+- Resume Instruction
+
+Final output:
+- the Stage-03 artifact set appropriate to the gate result
+
+The Console saves each Stage-03 artifact separately and tracks them automatically.
+
+At this point, 08 becomes especially useful if the operator needs help deciding whether the Stage-03 result is really ready for downstream execution or whether a pause or reroute is required.
+
+----------------------------------------------------------------------
+Stage 4 - Module Implementer
+----------------------------------------------------------------------
+
+You start with T1.
+
+You paste:
+- T1 Work Package File
+- Architecture Spec
+- any relevant starting files
+
+The Implementer outputs:
+- code for shared models
+- delivery report
+
+The Console saves the package result automatically.
+If actual files are produced, use the Console's file import feature.
+
+Then you do the same for T2, T3, T4, and so on.
+
+----------------------------------------------------------------------
+Stage 5 - Code Reviewer
+----------------------------------------------------------------------
+
+You send T1 to the Reviewer.
+
+The reviewer says:
+PASS
+FINAL_DISPOSITION: ACCEPT
+
+The Console records the review automatically.
+
+Then you review T2.
+Suppose T2 fails because it changed a forbidden file.
+That is an implementation bug, so you send T2 back for repair.
+
+Now imagine T4 fails because the JSON schema was never clearly defined in the Architecture Spec.
+That is not a normal code bug.
+That is a spec gap.
+You go back to the Technical Architect, update the Architecture Spec, then re-run the affected package.
+
+----------------------------------------------------------------------
+Stage 6 - Merge Coordinator
+----------------------------------------------------------------------
+
+After all needed packages pass review, you send:
+- Architecture Spec
+- Review Reports
+- reviewed module outputs
+- only exact output/review pairs whose review ends with FINAL_DISPOSITION: ACCEPT
+
+The Merge Coordinator checks:
+- imports
+- shared types
+- interface signatures
+- artifact naming
+- error behavior between modules
+- boundary validation already performed
+- remaining boundary checks, if any
+
+Possible result A:
+CLEAN MERGE
+
+Possible result B:
+MERGED WITH FIXES
+
+Possible result C:
+BLOCKED - REQUIRES REWORK
+
+The Console saves the merge result automatically.
+
+If blocked because two modules need a new shared helper that the spec never defined, go back to the Technical Architect.
+
+======================================================================
+13. SIMPLE TROUBLESHOOTING
+======================================================================
+
+Problem:
+The Architect says the briefing is too weak.
+
+What to do:
+Go back to Requirements Engineer and clarify missing constraints.
+
+Problem:
+The Implementer says it must invent a new interface.
+
+What to do:
+Go back to Technical Architect.
+
+Problem:
+The Reviewer says the package is technically correct but violates the work package contract.
+
+What to do:
+Go back to the Module Implementer or, if the package contract was bad, back to the Project Orchestrator.
+
+Problem:
+The Merger says integration would require changing a frozen contract.
+
+What to do:
+Go back to Technical Architect.
+
+Problem:
+You are overwhelmed by too many packages.
+
+What to do:
+Ask the Project Orchestrator to reduce over-splitting and produce fewer, larger packages.
+
+Problem:
+You understand the pipeline in principle, but right now you are not sure whether the current output is good enough to proceed, whether the failure is local, or whether you should reroute upstream.
+
+What to do:
+Open 08_Operator_Run_Layer_v5.
+That is the companion for execution decisions.
+
+Problem:
+A workspace reload shows missing files or inconsistent state.
+
+What to do:
+Use the Console's workspace integrity check.
+If files are missing on disk, treat that as an operational problem first.
+Do not continue until you understand which artifacts are still authoritative.
+
+Problem:
+Everything keeps failing because outputs are inconsistent.
+
+What to do:
+Check whether you are always using the latest correct:
+- Master Briefing
+- Architecture Spec
+- full Work Package File
+- review result
+
+Pipeline mistakes are often caused by stale artifacts, not by model failure.
+
+======================================================================
+14. BEST PRACTICES
+======================================================================
+
+- Work one package at a time.
+- Do not skip review.
+- Do not ask merge to rescue bad packages.
+- Do not let implementers invent architecture.
+- Do not let reviewers redesign architecture.
+- Keep 07 and 08 both available during real execution.
+- Use 07 for rules and workflow understanding.
+- Use 08 for decision support, especially for accept / reroute / escalate judgments.
+- Let the Console handle all file management. Focus on content quality and routing decisions.
+- If the Console blocks a transition, understand why before working around it.
+- When in doubt, go back upstream instead of forcing a local fix.
+
+======================================================================
+15. MINIMUM SAFE WORKFLOW
+======================================================================
+
+If you want the shortest version that is still safe, do this:
+
+1. Run Requirements Engineer
+2. Run Technical Architect
+3. Run Project Orchestrator only if the Architecture Spec ends with CLOSED
+4. Implement one package from its Work Package File
+5. Review that package
+6. Repeat for all packages
+7. Merge only reviewed packages
+
+That is the minimum version that still preserves the benefits of the pipeline.
+
+During actual execution of those seven steps, use 08 whenever you need help deciding whether to proceed, repair, escalate, or reroute.
+
+======================================================================
+16. RUNNING A SECOND PHASE ON AN EXISTING CODEBASE
+======================================================================
+
+This section applies when:
+- you already have a working codebase from a previous pipeline run,
+- you want to add features, modules, or capabilities,
+- and the existing code must not break.
+
+What carries forward from the previous phase:
+
+Master Briefing:
+Usually needs a new or extended version for the new phase.
+The old briefing remains as reference, but the new phase should get its own briefing.
+
+Architecture Spec:
+Usually needs revision, not replacement.
+Use the Technical Architect's Revision Mode.
+The existing spec is the baseline.
+Only the new or changed areas should be updated.
+
+Stage-03 artifacts:
+Must be regenerated for the new phase.
+The old Master Orchestration File and old Work Package Files are reference only.
+
+Implementation, Review, and Merge artifacts:
+Start fresh for the new phase, but keep the old workspace as reference.
+
+Critical rule:
+The existing codebase is the "existing code context" input for the Technical Architect.
+
+The Architect must treat all existing interfaces as frozen unless the new briefing explicitly authorizes changes.
+
+Backward compatibility is the default.
+Breaking changes must be explicitly requested and justified.
+
+Phase handling rule:
+For Phase 2, create a new workspace folder and run the new phase there.
+The Console manages the new workspace structure, manifest, state, audit log, and revisions automatically.
+Keep the old Phase 1 workspace intact as a read-only reference.
+
+Simple rule of thumb:
+- If you are adding something new -> new briefing, revised spec, new orchestration in a new workspace
+- If you are fixing something from Phase 1 -> use the repair loop from Phase 1, do not start a new phase
+
+The 07 / 08 / 09 split remains the same in later phases:
+- 07 explains the workflow and control logic.
+- 08 helps with execution decisions.
+- 09 manages persistence, artifact tracking, state, and file organization.
+
+======================================================================
+17. FINAL REMINDER
+======================================================================
+
+This system works best when each role stays in its lane.
+
+Requirements Engineer:
+Defines what the project needs.
+
+Technical Architect:
+Defines the technical rules.
+
+Project Orchestrator:
+Defines the execution plan.
+
+Module Implementer:
+Builds one package.
+
+Code Reviewer:
+Checks one package.
+
+Merge Coordinator:
+Assembles reviewed pieces safely.
+
+07_End_User_Operating_Guide_v5:
+Explains how the pipeline works overall and defines the rules.
+
+08_Operator_Run_Layer_v5:
+Helps you make execution decisions in the moment.
+
+09 console bundle (09_Operator_Console_v5.html + required js/ files):
+Handles saving, tracking, state progression, manifest maintenance, audit trail, and workspace management.
+
+If one role starts doing another role's job, the workflow becomes blurry and errors become harder to catch.
+The same is true if 07, 08, and 09 are mixed up.
+Use 07 for understanding and control.
+Use 08 for decisions.
+Use 09 for operational execution and persistence.
+
+END OF FILE
